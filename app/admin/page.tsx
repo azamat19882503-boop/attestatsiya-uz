@@ -1,1 +1,71 @@
-'use client';import {useState} from 'react';import {supabase} from '../../lib/supabase';import Link from 'next/link';export default function Admin(){const [t,st]=useState('i');const [x,sx]=useState('');const [l,sl]=useState([]);const go=async()=>{const r=await fetch('/api/ai',{method:'POST',body:JSON.stringify({text:x,mode:t==='b'?'generate':'parse'})});const d=await r.json();sl(d.questions||[])};const sv=async()=>{await supabase.from('qnuestions').insert(l);alert('Saqlandi!');sl([])};return <div className='p-6 max-w-3xl mx-auto'><div className='flex justify-between mb-4'><h1 className='text-2xl font-bold'>Admin</h1><Link href='/'>Bosh sahifa</Link></div><div className='flex gap-2 mb-4'><button onClick={()=>st('i')} className='p-2 bg-emerald-600 text-white rounded'>AI Import</button><button onClick={()=>st('b')} className='p-2 bg-blue-600 text-white rounded'>Kitobdan test</button></div><textarea value={x} onChange={e=>sx(e.target.value)} rows={5} className='w-full border p-3 mb-3 rounded'/><button onClick={go} className='bg-emerald-600 text-white px-4 py-2 rounded'>Yaratish</button>{l.map((i,k)=><div key={k} className='p-2 border mt-2'>{i.question_text}</div>)=>||null}{l.length>0&&<button onClick={sv} className='mt-3 bg-blue-600 text-white p-2 rounded'>Bazaga saqlash</button>}</div>}
+'use client';
+
+import { useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import Link from 'next/link';
+
+export default function AdminPage() {
+  const [text, setText] = useState('');
+  const [list, setList] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const runAI = async (mode: string) => {
+    setLoading(true);
+    const res = await fetch('/api/ai', {
+      method: 'POST',
+      body: JSON.stringify({ text, mode, count: 5 }),
+    });
+    const data = await res.json();
+    setList(data.questions || []);
+    setLoading(false);
+  };
+
+  const saveAll = async () => {
+    if (list.length === 0) return;
+    await supabase.from('questions').insert(list);
+    alert('Bazaga saqlandi!');
+    setList([]);
+    setText('');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <Link href="/" className="text-emerald-600 font-semibold">Bosh sahifa</Link>
+        </div>
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          rows={6}
+          placeholder="Test yoki darslik matnini shu yerga tashlang..."
+          className="w-full border rounded-xl p-4 mb-4"
+        />
+
+        <div className="flex gap-3">
+          <button onClick={() => runAI('parse')} disabled={loading} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold">
+            {loading ? 'Kuting...' : 'Matndan test ajratish'}
+          </button>
+          <button onClick={() => runAI('generate')} disabled={loading} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold">
+            Kitobdan test tuzish
+          </button>
+        </div>
+
+        {list.length > 0 && (
+          <div className="mt-6 space-y-2">
+            {list.map((q: any, i: number) => (
+              <div key={i} className="p-3 border rounded-lg bg-gray-50">
+                <p className="font-semibold">{i + 1}. {q.question_text}</p>
+              </div>
+            ))}
+            <button onClick={saveAll} className="mt-4 bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold">
+              Bazaga saqlash
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
