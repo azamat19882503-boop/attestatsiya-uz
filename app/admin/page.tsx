@@ -6,26 +6,43 @@ import Link from 'next/link';
 
 export default function AdminPage() {
   const [text, setText] = useState('');
-  const [list, setList] = useState([]);
+  const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const runAI = async (mode: string) => {
+    if (!text.trim()) {
+      alert('Avval matn yoki mavzu yozing!');
+      return;
+    }
     setLoading(true);
-    const res = await fetch('/api/ai', {
-      method: 'POST',
-      body: JSON.stringify({ text, mode, count: 5 }),
-    });
-    const data = await res.json();
-    setList(data.questions || []);
+    try {
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, mode, count: 5 }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert('Xatolik: ' + (data.error || 'Noma’lum xato'));
+      } else {
+        setList(data.questions || []);
+      }
+    } catch (err: any) {
+      alert('Ulanish xatosi: ' + err.message);
+    }
     setLoading(false);
   };
 
   const saveAll = async () => {
     if (list.length === 0) return;
-    await supabase.from('questions').insert(list);
-    alert('Bazaga saqlandi!');
-    setList([]);
-    setText('');
+    const { error } = await supabase.from('questions').insert(list);
+    if (error) {
+      alert('Bazaga saqlashda xato: ' + error.message);
+    } else {
+      alert('Bazaga muvaffaqiyatli saqlandi!');
+      setList([]);
+      setText('');
+    }
   };
 
   return (
@@ -46,10 +63,10 @@ export default function AdminPage() {
 
         <div className="flex gap-3">
           <button onClick={() => runAI('parse')} disabled={loading} className="bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold">
-            {loading ? 'Kuting...' : 'Matndan test ajratish'}
+            {loading ? 'AI ishlamoqda...' : 'Matndan test ajratish'}
           </button>
           <button onClick={() => runAI('generate')} disabled={loading} className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold">
-            Kitobdan test tuzish
+            {loading ? 'AI ishlamoqda...' : 'Kitobdan test tuzish'}
           </button>
         </div>
 
@@ -58,6 +75,9 @@ export default function AdminPage() {
             {list.map((q: any, i: number) => (
               <div key={i} className="p-3 border rounded-lg bg-gray-50">
                 <p className="font-semibold">{i + 1}. {q.question_text}</p>
+                <p className="text-sm text-emerald-700 mt-1">
+                  To‘g‘ri javob: {(q.options || [])[q.correct_index]}
+                </p>
               </div>
             ))}
             <button onClick={saveAll} className="mt-4 bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold">

@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const { text, mode, count = 5 } = await req.json();
     const key = process.env.GEMINI_API_KEY;
     if (!key) {
-      return NextResponse.json({ error: 'Vercelda GEMINI_API_KEY topilmadi!' }, { status: 500 });
+      return NextResponse.json({ error: 'Vercelda GEMINI_API_KEY kiritilmagan!' }, { status: 500 });
     }
 
     const prompt =
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
     const data = await res.json();
     if (!res.ok) {
-      return NextResponse.json({ error: data.error?.message || 'Gemini xatosi' }, { status: 500 });
+      return NextResponse.json({ error: data.error?.message || 'Gemini API xatosi' }, { status: 500 });
     }
 
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
