@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         : `Quyidagi mavzu bo'yicha ${count} ta o'zbek tilida attestatsiya test savoli tuzing va faqat JSON massiv shaklida qaytaring (question_text, options, correct_index, explanation): \n${text}`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.8-flash',
       contents: prompt,
       config: { responseMimeType: 'application/json' },
     });
