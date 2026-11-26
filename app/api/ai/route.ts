@@ -15,11 +15,23 @@ export async function POST(req: Request) {
         ? `Quyidagi matndan test savollarini ajratib oling va faqat JSON massiv shaklida qaytaring: [{"question_text":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"..."}]. Matn:\n${text}`
         : `Quyidagi mavzu bo'yicha ${count} ta o'zbek tilida attestatsiya test savoli tuzing va faqat JSON massiv shaklida qaytaring: [{"question_text":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"..."}]. Mavzu:\n${text}`;
 
-    const models = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+    // Google serveridan hozir faol bo'lgan modellarni avtomatik aniqlash
+    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+    try {
+      const listRes = await fetch(`https://googleapis.com{apiKey}`);
+      const listData = await listRes.json();
+      if (Array.isArray(listData.models)) {
+        const active = listData.models
+          .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent') && m.name?.includes('flash'))
+          .map((m: any) => m.name.replace('models/', ''));
+        candidateModels.unshift(...active);
+      }
+    } catch {}
+
     let responseText = '';
     let lastError = '';
 
-    for (const model of models) {
+    for (const model of [...new Set(candidateModels)]) {
       try {
         const res = await ai.models.generateContent({
           model,
@@ -42,10 +54,6 @@ export async function POST(req: Request) {
     const cleanJson = responseText.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(cleanJson);
     const questions = Array.isArray(parsed) ? parsed : parsed.questions || [];
-
-    if (questions.length === 0) {
-      return NextResponse.json({ error: 'AI bo‘sh ro‘yxat qaytardi: ' + cleanJson.slice(0, 100) }, { status: 500 });
-    }
 
     return NextResponse.json({ questions });
   } catch (e: any) {
