@@ -9,22 +9,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'GEMINI_API_KEY topilmadi!' }, { status: 500 });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey, apiVersion: 'v1beta' });
     const prompt =
       mode === 'parse'
         ? `Quyidagi matndan test savollarini ajratib oling va faqat JSON massiv shaklida qaytaring: [{"question_text":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"..."}]. Matn:\n${text}`
         : `Quyidagi mavzu bo'yicha ${count} ta o'zbek tilida attestatsiya test savoli tuzing va faqat JSON massiv shaklida qaytaring: [{"question_text":"...","options":["A","B","C","D"],"correct_index":0,"explanation":"..."}]. Mavzu:\n${text}`;
 
-    // Google serveridan hozir faol bo'lgan modellarni avtomatik aniqlash
-    const candidateModels = ['gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'];
+    const candidateModels = ['gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
     try {
-      const listRes = await fetch(`https://googleapis.com{apiKey}`);
-      const listData = await listRes.json();
-      if (Array.isArray(listData.models)) {
-        const active = listData.models
-          .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent') && m.name?.includes('flash'))
-          .map((m: any) => m.name.replace('models/', ''));
-        candidateModels.unshift(...active);
+      const listPager = await ai.models.list();
+      for await (const m of listPager) {
+        if (m.name && m.name.includes('gemini') && m.supportedActions?.includes('generateContent')) {
+          candidateModels.unshift(m.name.replace('models/', ''));
+        }
       }
     } catch {}
 
